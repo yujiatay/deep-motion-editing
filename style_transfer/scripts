@@ -1,0 +1,4 @@
+
+blender -P render.py -- --render_engine eevee --save_path ./output/ --bvh_path ../style_transfer/data/xia_test/neutral_01_000.bvh
+
+python style_transfer/test.py --content_src style_transfer/data/xia_test/neutral_01_000.bvh --style_src style_transfer/data/output-brian-25-10 --output_dir style_transfer/demo_results/brian-25-10

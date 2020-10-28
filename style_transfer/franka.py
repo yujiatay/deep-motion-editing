@@ -2,7 +2,7 @@ import argparse
 import os
 
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+# from torch.utils.data import Dataset, DataLoader
 
 
 class TrajectoryPoint:
@@ -32,50 +32,50 @@ class MoveitMotionPlan:
         return np.array([self.trajectory_points[i].positions for i in range(0, num_points)])
 
 
-class MoveitDataset(Dataset):
-    def __init__(self, config, subset_name, data_dir):
-        super(MoveitDataset, self).__init__()
-
-        self.device = config.device  # CUDA or CPU
-
-        data_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith('.txt')]
-        self.motion_plans = [parse_moveit_motion_plan(file) for file in data_files]
-        self.min_points = min([motion.num_points for motion in self.motion_plans])
-        # TODO: HARDCODED!!!!!!!!!!
-        self.min_points = 10
-
-        self.len = len(self.motion_plans)
-        # TODO: Add label to motion plans when parsing
-        self.labels = [0] * self.len
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, index):
-        data = {
-            "label": self.labels[index],  # used in model.py
-            "meta": [],
-            "content": self.motion_plans[index].get_motion(self.min_points),  # used in model.py
-            # TODO: Find proper data for style
-            "style3d": self.motion_plans[(index + 1) % self.len].get_motion(self.min_points),
-            "contentraw": self.motion_plans[index].get_motion(self.min_points),  # used in model.py
-            "style3draw": self.motion_plans[(index + 1) % self.len].get_motion(self.min_points),  # used in model.py
-            # TODO: This should be a different data with same style
-            "same_style3d": self.motion_plans[index].get_motion(self.min_points),
-            # TODO: This should be a different data with different style
-            "diff_style3d": self.motion_plans[(index + 2) % self.len].get_motion(self.min_points),
-            "foot_contact": [],
-        }
-        # TODO: Does data need to be normalized?
-        return data
-
-
-def get_franka_dataloader(config, subset_name, data_dir, shuffle=True):
-    dataset = MoveitDataset(config, subset_name, data_dir)
-    return DataLoader(dataset,
-                      batch_size=config.batch_size if subset_name == 'train' else 1,
-                      shuffle=shuffle,
-                      num_workers=0)
+# class MoveitDataset(Dataset):
+#     def __init__(self, config, subset_name, data_dir):
+#         super(MoveitDataset, self).__init__()
+#
+#         self.device = config.device  # CUDA or CPU
+#
+#         data_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith('.txt')]
+#         self.motion_plans = [parse_moveit_motion_plan(file) for file in data_files]
+#         self.min_points = min([motion.num_points for motion in self.motion_plans])
+#         # TODO: HARDCODED!!!!!!!!!!
+#         self.min_points = 10
+#
+#         self.len = len(self.motion_plans)
+#         # TODO: Add label to motion plans when parsing
+#         self.labels = [0] * self.len
+#
+#     def __len__(self):
+#         return self.len
+#
+#     def __getitem__(self, index):
+#         data = {
+#             "label": self.labels[index],  # used in model.py
+#             "meta": [],
+#             "content": self.motion_plans[index].get_motion(self.min_points),  # used in model.py
+#             # TODO: Find proper data for style
+#             "style3d": self.motion_plans[(index + 1) % self.len].get_motion(self.min_points),
+#             "contentraw": self.motion_plans[index].get_motion(self.min_points),  # used in model.py
+#             "style3draw": self.motion_plans[(index + 1) % self.len].get_motion(self.min_points),  # used in model.py
+#             # TODO: This should be a different data with same style
+#             "same_style3d": self.motion_plans[index].get_motion(self.min_points),
+#             # TODO: This should be a different data with different style
+#             "diff_style3d": self.motion_plans[(index + 2) % self.len].get_motion(self.min_points),
+#             "foot_contact": [],
+#         }
+#         # TODO: Does data need to be normalized?
+#         return data
+#
+#
+# def get_franka_dataloader(config, subset_name, data_dir, shuffle=True):
+#     dataset = MoveitDataset(config, subset_name, data_dir)
+#     return DataLoader(dataset,
+#                       batch_size=config.batch_size if subset_name == 'train' else 1,
+#                       shuffle=shuffle,
+#                       num_workers=0)
 
 
 def parse_moveit_motion_plan(filename: str) -> MoveitMotionPlan:
