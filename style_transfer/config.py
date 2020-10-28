@@ -10,7 +10,7 @@ sys.path.insert(0, BASEPATH)
 
 class Config:
 
-    for_try = True
+    for_try = False
 
     # Save & Visualization
     name = 'pretrained'
