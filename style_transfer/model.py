@@ -195,13 +195,13 @@ class Model(nn.Module):
 
             # summary
 
-            l_total = (self.gan_w * l_adv +
-                       self.rec_w * l_rec +
-                       self.feat_w * l_ft +
-                       self.qt_w * l_qt +
-                       self.tw_w * l_tw +
-                       self.triplet_w * l_triplet +
-                       self.joint_w * l_joint)
+            l_total = (self.gan_w * l_adv + # adversarial loss
+                       self.rec_w * l_rec + # reconstruction loss
+                       self.feat_w * l_ft + # feature loss?
+                       self.qt_w * l_qt + # quaternion loss?
+                       self.tw_w * l_tw + # twist loss?
+                       self.triplet_w * l_triplet + # triplet loss for style latent space
+                       self.joint_w * l_joint) # joint loss for 3D-2D motion mapping
 
             if self.use_rotloss:
                 l_total += self.rrec_w * l_rrec
@@ -237,6 +237,7 @@ class Model(nn.Module):
             xa = co_data["style3draw"]
             lb = cl_data["label"]
             la = co_data["label"]
+
             xb.requires_grad_()
             db = self.convert_to_disc(xb)
             l_real_p, acc_r, resp_r = self.dis.calc_dis_real_loss(db, lb)

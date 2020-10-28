@@ -53,6 +53,8 @@ class Config:
 
     # Training
     batch_size = 128
+    # TODO: changed here
+    # batch_size = 1
 
     # Testing
     test_batch_n = 56  # number of test clips
@@ -82,10 +84,15 @@ class Config:
     # input: T * 64
     rot_channels = 128  # added one more y-axis rotation
     pos3d_channels = 64  # changed to be the same as rfree
+    # TODO: CHANGED
+    # NUM_POSE_PER_MOTION = 10
+    # pos3d_channels = NUM_POSE_PER_MOTION
     proj_channels = 42
 
     num_channel = rot_channels
     num_style_joints = 21
+    # TODO: CHANGED
+    # num_style_joints = 7
 
     style_channel_2d = proj_channels
     style_channel_3d = pos3d_channels
@@ -131,6 +138,8 @@ class Config:
     dec_channels = enc_co_channels.copy()
     dec_channels.reverse()
     dec_channels[-1] = 31 * 4  # Let it output rotations only
+    # TODO: CHANGED
+    # dec_channels[-1] = NUM_POSE_PER_MOTION
     dec_up_n = enc_co_down_n
     dec_kernel_size = 8
     dec_stride = 1
@@ -147,8 +156,12 @@ class Config:
 
     """
     disc_channels = [pos3d_channels, 96, 144]
+    # TODO: CHANGED
+    # disc_channels = [pos3d_channels, 32, 64]
     disc_down_n = 2  # 64 -> 32 -> 16 -> 8 -> 4
     disc_kernel_size = 6
+    # TODO: CHANGED
+    # disc_kernel_size = 3
     disc_stride = 1
     disc_pool_size = 3
     disc_pool_stride = 2

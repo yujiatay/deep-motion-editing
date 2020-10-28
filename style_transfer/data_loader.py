@@ -90,6 +90,14 @@ class MotionNorm(Dataset):
         if data_path is None:
             data_path = config.data_path
         dataset = np.load(data_path, allow_pickle=True)[subset_name].item()
+        '''
+        motions: arrays of T x 132
+        labels: array of integer values to denote the 'style' of the motion
+        metas: 
+            - style: array of string labels e.g. 'angry', 'childlike'
+            - content: array of string labels e.g. 'walk'
+            - phase: array of floats
+        '''
         motions, labels, metas = dataset["motion"], dataset["style"], dataset["meta"]
 
         self.label_i = labels
@@ -99,6 +107,7 @@ class MotionNorm(Dataset):
         content, style3d, style2d = [], [], []
 
         self.labels = []
+        '''data_dict contains mapping of style label to indices belonging to this label'''
         self.data_dict = {}
         self.diff_labels_dict = {}
 
@@ -156,6 +165,7 @@ class MotionNorm(Dataset):
             l_diff = label
         else:
             l_diff = self.rand.choice(self.diff_labels_dict[label])
+        '''Finds another data sample with the same label'''
         index_same = self.rand.choice(self.data_dict[label])
         index_diff = self.rand.choice(self.data_dict[l_diff])
         data = {"label": label,

@@ -13,7 +13,7 @@ from itertools import cycle
 from py_utils import write_loss, print_composite, to_float
 from probe.latent_plot_utils import get_all_plots
 from trainer import Trainer
-
+from franka import get_franka_dataloader
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -31,6 +31,17 @@ def main(args):
     max_iter = config.max_iter
 
     # Dataloader
+    '''Moveit data'''
+    # MOVEIT_TRAIN = '/Users/yuj/Projects/fyp/deep-motion-editing/style_transfer/data/moveit_train/'
+    # MOVEIT_TEST =  '/Users/yuj/Projects/fyp/deep-motion-editing/style_transfer/data/moveit_test/'
+    # train_content_loader = get_franka_dataloader(config, 'train', MOVEIT_TRAIN)
+    # train_class_loader = get_franka_dataloader(config, 'train', MOVEIT_TRAIN)
+    # test_content_loader = get_franka_dataloader(config, 'test', MOVEIT_TEST)
+    # test_class_loader = get_franka_dataloader(config, 'test', MOVEIT_TEST, shuffle=True)
+    # trainfull_content_loader = get_franka_dataloader(config, 'train', MOVEIT_TRAIN)
+    # trainfull_class_loader = get_franka_dataloader(config, 'train', MOVEIT_TRAIN)
+    # test_rec_loader = get_franka_dataloader(config, 'test', MOVEIT_TEST, shuffle=True)
+    # rec_loader = cycle(test_rec_loader)
 
     train_content_loader = get_dataloader(config, 'train')
     train_class_loader = get_dataloader(config, 'train')
@@ -43,7 +54,6 @@ def main(args):
 
     # Trainer
     trainer = Trainer(config)
-    print("here!")
 
     tr_info = open(os.path.join(config.info_dir, "info-network"), "w")
     print(trainer.model, file=tr_info)
