@@ -130,6 +130,78 @@ def motion_and_phase_to_dict(fulls, style, meta):
     return output
 
 
+def generate_database_panda(bvh_path, output_path="panda"):
+    content_names = ["pandac"]
+    style_names = ["pandas"]
+    style_name_to_idx = {name: i for i, name in enumerate(style_names)}
+
+    skel = Skel(filename='panda_rest.yml')
+
+    bvh_files = get_bvh_files(bvh_path)
+
+    train_inputs = []
+    test_inputs = []
+    trainfull_inputs = []
+    test_files = []
+    # TODO: Change test boundary based on generated dataset
+    TEST_BOUNDARY = 20
+
+    for i, item in enumerate(bvh_files):
+        print('Processing %i of %i (%s)' % (i, len(bvh_files), item))
+        # Filename format: panda_000.bvh
+        filename = item.split('/')[-1]
+        # style: "pandas"
+        style, _ = filename.split('_')
+
+        # content: "walk"
+        content = "pandac"
+
+        uclip = motion_and_phase_to_dict(
+            process_file(item, divider=divide_clip_xia, window=None, window_step=None, downsample=1,
+                         skel=skel, divide=False),
+            style_name_to_idx[style],
+            {"style": style, "content": content})
+        # Arbitrarily set the first X clips as test set
+        if i < TEST_BOUNDARY:
+            test_inputs += uclip
+            test_files.append(filename)
+        else:
+            trainfull_inputs += uclip
+            train_inputs += uclip
+
+    data_dict = {}
+    data_info = {}
+    for subset, inputs in zip(["train", "test", "trainfull"], [train_inputs, test_inputs, trainfull_inputs]):
+        motions = [input["motion"] for input in inputs]
+        styles = [input["style"] for input in inputs]
+        meta = {key: [input["meta"][key] for input in inputs] for key in inputs[0]["meta"].keys()}
+        data_dict[subset] = {"motion": motions, "style": styles, "meta": meta}
+
+        """compute meta info"""
+        num_clips = len(motions)
+        info = {"num_clips": num_clips,
+                "distribution":
+                    {style:
+                         {content: len([i for i in range(num_clips) if
+                                        meta["style"][i] == style and meta["content"][i] == content])
+                          for content in content_names}
+                     for style in style_names}
+                }
+        data_info[subset] = info
+
+    np.savez_compressed(output_path + ".npz", **data_dict)
+
+    info_file = output_path + ".info"
+    data_info["test_files"] = test_files
+    with open(info_file, "w") as f:
+        yaml.dump(data_info, f, sort_keys=False)
+
+    test_folder = output_path + "_test"
+    if not os.path.exists(test_folder):
+        os.makedirs(test_folder)
+    for file in test_files:
+        shutil.copy(pjoin(bvh_path, file), pjoin(test_folder, file))
+
 def generate_database_xia(bvh_path, output_path, window, window_step, dataset_config='xia_dataset.yml'):
     with open(dataset_config, "r") as f:
         cfg = yaml.load(f, Loader=yaml.Loader)
@@ -298,6 +370,8 @@ def main(args):
         generate_database_bfa(bvh_path=args.bvh_path, output_path=args.output_path,
                               window=args.window, window_step=args.window_step,
                               dataset_config=args.dataset_config)
+    elif args.dataset == "panda":
+        generate_database_panda(bvh_path=args.bvh_path, output_path=args.output_path)
     else:
         assert 0, f'Unsupported dataset type {args.dataset}'
 
