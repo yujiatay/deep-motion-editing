@@ -369,6 +369,7 @@ class AnimationData:
         if skel is None:
             skel = Skel()
 
+        # [..., np.newaxis] converts the 1d array of (J, ) to 2D array of (J, 1)
         rotations /= np.sqrt(np.sum(rotations ** 2, axis=-1))[..., np.newaxis]
         global_positions = forward_rotations(skel, rotations, root_positions, trim=True)
         foot_contact = foot_contact_from_positions(global_positions, fid_l=skel.fid_l, fid_r=skel.fid_r)
@@ -385,6 +386,7 @@ class AnimationData:
     @classmethod
     def from_BVH(cls, filename, downsample=4, skel=None, trim_scale=None):
         anim, names, frametime = BVH.load(filename)
+        # Takes only every "downsample"-th value in array
         anim = anim[::downsample]
         if trim_scale is not None:
             length = (len(anim) // trim_scale) * trim_scale

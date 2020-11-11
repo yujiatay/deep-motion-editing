@@ -99,9 +99,11 @@ def load(filename, start=None, end=None, order=None, world=False):
             if order is None:
                 channelis = 0 if channels == 3 else 3
                 channelie = 3 if channels == 3 else 6
+                # Extracts the rotations e.g. ['Zrotation', 'Yrotation', 'Xrotation']
                 parts = line.split()[2+channelis:2+channelie]
                 if any([p not in channelmap for p in parts]):
                     continue
+                # Updates order to be based on the .bvh file e.g. 'xyz' or 'zyx' (Required for Quaternions later)
                 order = "".join([channelmap[p] for p in parts])
             continue
 
@@ -143,9 +145,10 @@ def load(filename, start=None, end=None, order=None, world=False):
         dmatch = line.strip().split()
         if dmatch:
             data_block = np.array(list(map(float, dmatch)))
+            # N refers to number of joints
             N = len(parents)
             fi = i - start if start else i
-            if   channels == 3:
+            if channels == 3:
                 # This should be root positions[0:1] & all rotations
                 positions[fi,0:1] = data_block[0:3]
                 rotations[fi, : ] = data_block[3: ].reshape(N,3)

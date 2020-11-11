@@ -45,6 +45,14 @@ def bvh_to_motion_and_phase(filename, downsample, skel):
 
 
 def divide_clip_xia(input, window, window_step, divide):
+    """
+    Parameters
+    ----------
+    input
+    window: default 48
+    window_step: default 8
+    divide: boolean (True)
+    """
     if not divide:  # return the whole clip
         t = ((input.shape[0]) // 4) * 4 + 4
         t = max(t, 12)
@@ -53,7 +61,7 @@ def divide_clip_xia(input, window, window_step, divide):
         return [input]
 
     windows = []
-    j = -(window // 4)
+    j = -(window // 4)  # j = -12
     total = len(input)
     while True:
         slice = input[max(j, 0): j + window].copy()  # remember to COPY!!
@@ -83,7 +91,9 @@ def divide_clip_bfa(input, window, window_step, divide):
 
 
 def process_file(filename, divider, window, window_step, downsample=4, skel=None, divide=True):
+    # Convert bvh using AnimationData.fromBVH() and returns .fulls and .phases
     input = bvh_to_motion_and_phase(filename, downsample=downsample, skel=skel)  # [T, xxx]
+    # Divider splits the input into an array of shorter "clips" based on window size and window_step
     return divider(input, window=window, window_step=window_step, divide=divide)
 
 
@@ -123,6 +133,7 @@ def motion_and_phase_to_dict(fulls, style, meta):
 def generate_database_xia(bvh_path, output_path, window, window_step, dataset_config='xia_dataset.yml'):
     with open(dataset_config, "r") as f:
         cfg = yaml.load(f, Loader=yaml.Loader)
+    # content_namedict: ["walk", "walk", ..., "run", ...]. See xia_dataset.yml
     content_namedict = [full_name.split('_')[0] for full_name in cfg["content_full_names"]]
     content_test_cnt = cfg["content_test_cnt"]
     content_names = cfg["content_names"]
@@ -141,8 +152,12 @@ def generate_database_xia(bvh_path, output_path, window, window_step, dataset_co
 
     for i, item in enumerate(bvh_files):
         print('Processing %i of %i (%s)' % (i, len(bvh_files), item))
+        # Filename format: angry_01_000.bvh
         filename = item.split('/')[-1]
+        # style: "angry", content_idx: "01"
         style, content_idx, _ = filename.split('_')
+
+        # content: "walk"
         content = content_namedict[int(content_idx) - 1]
         content_style = "%s_%s" % (content, style)
 
