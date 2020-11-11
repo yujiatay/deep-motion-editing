@@ -12,7 +12,7 @@ sys.path.insert(0, pjoin(BASEPATH, '..'))
 sys.path.insert(0, pjoin(BASEPATH, '..', '..'))
 
 from utils.animation_data import AnimationData
-from utils.load_skeleton import Skel
+from utils.load_skeleton import Skel, PandaSkel
 
 
 def pad_to_window(slice, window):
@@ -135,7 +135,7 @@ def generate_database_panda(bvh_path, output_path="panda"):
     style_names = ["pandas"]
     style_name_to_idx = {name: i for i, name in enumerate(style_names)}
 
-    skel = Skel(filename='panda_rest.yml')
+    skel = PandaSkel(filename='../global_info/panda_rest.yml')
 
     bvh_files = get_bvh_files(bvh_path)
 
