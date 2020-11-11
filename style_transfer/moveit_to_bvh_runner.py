@@ -7,7 +7,7 @@ def convert_moveit_data_dir(data_dir):
     data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.endswith('.txt')]
     for filepath in data_files:
         subprocess.call(["blender",
-                         "/home/yujia/deep-motion-editing/style_transfer/data/Frank_armature.blend",
+                         "./data/Franka_armature.blend",
                          "--background",
                          "--python", "moveit_to_bvh.py",
                          "--",
@@ -16,7 +16,7 @@ def convert_moveit_data_dir(data_dir):
 
 def parse_args():
     parser = argparse.ArgumentParser("moveit_to_bvh_runner")
-    parser.add_argument("--dir", type=str, default="./data/moveit_train/")
+    parser.add_argument("--dir", type=str, default="./data/motion_plans/")
     return parser.parse_args()
 
 
