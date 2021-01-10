@@ -37,11 +37,15 @@ def pad_to_window(slice, window):
     return slice
 
 
-def bvh_to_motion_and_phase(filename, downsample, skel):
-    anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel)
+def bvh_to_motion_and_phase(filename, downsample, skel, mode=None):
+    anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, mode=mode)
     full = anim.get_full()  # [T, xxx]
-    phases = anim.get_phases()  # [T, 1]
-    return np.concatenate((full, phases), axis=-1)
+    if mode == 'panda':
+        return full
+
+    # phases = anim.get_phases()  # [T, 1]
+    # return np.concatenate((full, phases), axis=-1)
+    return full
 
 
 def divide_clip_xia(input, window, window_step, divide):
@@ -90,11 +94,12 @@ def divide_clip_bfa(input, window, window_step, divide):
     return windows
 
 
-def process_file(filename, divider, window, window_step, downsample=4, skel=None, divide=True):
+def process_file(filename, divider, window, window_step, downsample=4, skel=None, divide=True, mode=None):
     # Convert bvh using AnimationData.fromBVH() and returns .fulls and .phases
-    input = bvh_to_motion_and_phase(filename, downsample=downsample, skel=skel)  # [T, xxx]
+    input = bvh_to_motion_and_phase(filename, downsample=downsample, skel=skel, mode=mode)  # [T, xxx]
     # Divider splits the input into an array of shorter "clips" based on window size and window_step
-    return divider(input, window=window, window_step=window_step, divide=divide)
+    divided_clip = divider(input, window=window, window_step=window_step, divide=divide)
+    return divided_clip
 
 
 def get_bvh_files(directory):
@@ -110,7 +115,7 @@ def set_init(dic, key, value):
         dic[key] = value
 
 
-def motion_and_phase_to_dict(fulls, style, meta):
+def motion_and_phase_to_dict(fulls, style, meta, panda=False):
     """
     fulls: a list of [T, xxx + 1] - motion and phase
     style: a *number*
@@ -118,10 +123,14 @@ def motion_and_phase_to_dict(fulls, style, meta):
     """
     output = []
     for full in fulls:
-        motion, phase = full[:, :-1], full[:, -1]
-        phase_label = phase[len(phase) // 2]
-        meta_copy = deepcopy(meta)
-        meta_copy["phase"] = phase_label
+        if panda:
+            motion = full
+            meta_copy = deepcopy(meta)
+        else:
+            motion, phase = full[:, :-1], full[:, -1]
+            phase_label = phase[len(phase) // 2]
+            meta_copy = deepcopy(meta)
+            meta_copy["phase"] = phase_label
         output.append({
             "motion": motion,
             "style": style,
@@ -151,16 +160,17 @@ def generate_database_panda(bvh_path, output_path="panda"):
         # Filename format: panda_000.bvh
         filename = item.split('/')[-1]
         # style: "pandas"
-        style, _ = filename.split('_')
+        style = "pandas"
 
         # content: "walk"
         content = "pandac"
 
         uclip = motion_and_phase_to_dict(
             process_file(item, divider=divide_clip_xia, window=None, window_step=None, downsample=1,
-                         skel=skel, divide=False),
+                         skel=skel, divide=False, mode="panda"),
             style_name_to_idx[style],
-            {"style": style, "content": content})
+            {"style": style, "content": content},
+            panda=True)
         # Arbitrarily set the first X clips as test set
         if i < TEST_BOUNDARY:
             test_inputs += uclip

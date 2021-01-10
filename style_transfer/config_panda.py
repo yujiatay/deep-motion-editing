@@ -25,7 +25,7 @@ class Config:
     # data paths
     data_dir = pjoin(BASEPATH, 'data')
     expr_dir = BASEPATH
-    data_filename = "xia.npz"
+    data_filename = "panda.npz"
     data_path = pjoin(data_dir, data_filename)
     extra_data_dir = pjoin(data_dir, data_filename.split('.')[-2].split('/')[-1] + "_norms")
 
@@ -82,12 +82,12 @@ class Config:
     }
 
     # input: T * 64
-    rot_channels = 128  # added one more y-axis rotation
-    pos3d_channels = 64  # changed to be the same as rfree
+    rot_channels = 28  # added one more y-axis rotation
+    pos3d_channels = 21  # changed to be the same as rfree
     # TODO: CHANGED
     # NUM_POSE_PER_MOTION = 10
     # pos3d_channels = NUM_POSE_PER_MOTION
-    proj_channels = 42
+    proj_channels = 21
 
     num_channel = rot_channels
     num_style_joints = 21
@@ -107,6 +107,15 @@ class Config:
     enc_cl_channels = [0, 96, 144]
     enc_cl_kernel_size = 8
     enc_cl_stride = 2
+
+    """
+    encoder for panda style class
+    """
+    panda_enc_cl_down_n = 2  # 64 -> 32 -> 16 -> 8 -> 4
+    panda_enc_cl_channels = [0, 96, 144]
+    panda_enc_cl_kernel_size = 8
+    panda_enc_cl_stride = 2
+    panda_style_channel_3d = 21
 
     """
     encoder for content
@@ -137,7 +146,7 @@ class Config:
     dec_resblks = enc_co_resblks
     dec_channels = enc_co_channels.copy()
     dec_channels.reverse()
-    dec_channels[-1] = 31 * 4  # Let it output rotations only
+    dec_channels[-1] = 7 * 4  # Let it output rotations only
     # TODO: CHANGED
     # dec_channels[-1] = NUM_POSE_PER_MOTION
     dec_up_n = enc_co_down_n
@@ -156,12 +165,8 @@ class Config:
 
     """
     disc_channels = [pos3d_channels, 96, 144]
-    # TODO: CHANGED
-    # disc_channels = [pos3d_channels, 32, 64]
     disc_down_n = 2  # 64 -> 32 -> 16 -> 8 -> 4
     disc_kernel_size = 6
-    # TODO: CHANGED
-    # disc_kernel_size = 3
     disc_stride = 1
     disc_pool_size = 3
     disc_pool_stride = 2
@@ -198,7 +203,7 @@ class Config:
         self.info_dir = os.path.join(self.main_dir, "info")
         self.output_dir = os.path.join(self.main_dir, "output")
 
-        ensure_dirs([self.main_dir, self.model_dir, self.tb_dir, self.info_dir, self.output_dir, self.extra_data_dir])
+        ensure_dirs([self.main_dir, self.model_dir, self.tb_dir, self.info_dir, self.output_dir])
 
         self.device = torch.device("cuda:%d" % self.cuda_id if torch.cuda.is_available() else "cpu")
 

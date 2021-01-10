@@ -24,6 +24,17 @@ class Skel:
         self.visualization = skel['visualization']
 
 
+class PandaSkel:
+    def __init__(self, filename=os.path.join(BASEPATH, "..", "style_transfer", "global_info", "panda_rest.yml")):
+        f = open(filename, "r")
+        skel = yaml.load(f, Loader=yaml.Loader)
+        self.bvh_name = os.path.join(os.path.dirname(filename), skel['BVH'])
+        self.rest_bvh = BVH.load(self.bvh_name)
+        self.offset = np.array(skel['offsets'])
+        self.topology = np.array(skel['parents'])
+        self.chosen_joints = np.array(skel['chosen_joints'])
+
+
 if __name__ == '__main__':
     skel = Skel()
     print(skel.topology)

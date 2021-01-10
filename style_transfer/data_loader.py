@@ -12,7 +12,7 @@ sys.path.insert(0, pjoin(BASEPATH, '..'))
 from torch.utils.data import Dataset, DataLoader
 from utils.animation_data import AnimationData
 from utils.animation_2d_data import AnimationData2D
-from utils.load_skeleton import Skel
+from utils.load_skeleton import Skel, PandaSkel
 from config import Config
 from py_utils import print_composite
 
@@ -81,11 +81,13 @@ class NormData:
 
 
 class MotionNorm(Dataset):
-    def __init__(self, config, subset_name, data_path=None, extra_data_dir=None):
+    def __init__(self, config, subset_name, data_path=None, extra_data_dir=None, panda=False):
         super(MotionNorm, self).__init__()
 
         np.random.seed(2020)
         self.skel = Skel()  # TD: add config
+        if panda:
+            self.skel = PandaSkel()
 
         if data_path is None:
             data_path = config.data_path
@@ -103,7 +105,8 @@ class MotionNorm(Dataset):
         self.label_i = labels
         self.len = len(self.label_i)
         self.metas = [{key: metas[key][i] for key in metas.keys()} for i in range(self.len)]
-        self.motion_i, self.foot_i = [], []
+        self.motion_i = []
+        # self.foot_i = []
         content, style3d, style2d = [], [], []
 
         self.labels = []
@@ -113,20 +116,21 @@ class MotionNorm(Dataset):
 
         for i, motion in enumerate(motions):
             label = labels[i]
-            anim = AnimationData(motion, skel=self.skel)
+            anim = AnimationData(motion, skel=self.skel, panda=panda)
             if label not in self.labels:
                 self.labels.append(label)
                 self.data_dict[label] = []
             self.data_dict[label].append(i)
             self.motion_i.append(anim)
-            self.foot_i.append(anim.get_foot_contact(transpose=True))  # [4, T]
+            # self.foot_i.append(anim.get_foot_contact(transpose=True))  # [4, T]
             content.append(anim.get_content_input())
             style3d.append(anim.get_style3d_input())
-            view_angles, scales = [], []
-            for v in range(10):
-                view_angles.append(self.random_view_angle())
-                scales.append(self.random_scale())
-            style2d.append(anim.get_projections(view_angles, scales))
+            # TODO: FIGURE OUT HOW TO CALCULATE ROOT ROTATION THEN CAN DO STYLE_2D
+            # view_angles, scales = [], []
+            # for v in range(10):
+            #     view_angles.append(self.random_view_angle())
+            #     scales.append(self.random_scale())
+            # style2d.append(anim.get_projections(view_angles, scales))
 
         # calc diff labels
         for x in self.labels:
@@ -137,14 +141,23 @@ class MotionNorm(Dataset):
 
         norm_cfg = config.dataset_norm_config
         norm_data = []
-        for key, raw in zip(["content", "style3d", "style2d"], [content, style3d, style2d]):
+        # for key, raw in zip(["content", "style3d", "style2d"], [content, style3d, style2d]):
+        #     prefix = norm_cfg[subset_name][key]
+        #     pre_computed = prefix is not None
+        #     if prefix is None:
+        #         prefix = subset_name
+        #     norm_data.append(NormData(prefix + "_" + key, pre_computed, raw,
+        #                               config, extra_data_dir, keep_raw=(key != "style2d")))
+        # self.content, self.style3d, self.style2d = norm_data
+        for key, raw in zip(["content", "style3d"], [content, style3d]):
             prefix = norm_cfg[subset_name][key]
             pre_computed = prefix is not None
             if prefix is None:
                 prefix = subset_name
             norm_data.append(NormData(prefix + "_" + key, pre_computed, raw,
                                       config, extra_data_dir, keep_raw=(key != "style2d")))
-        self.content, self.style3d, self.style2d = norm_data
+        self.content, self.style3d = norm_data
+
         self.device = config.device
         self.rand = random.SystemRandom()
 
@@ -170,7 +183,7 @@ class MotionNorm(Dataset):
         index_diff = self.rand.choice(self.data_dict[l_diff])
         data = {"label": label,
                 "meta": self.metas[index],
-                "foot_contact": self.foot_i[index],  # for footskate fixing
+                # "foot_contact": self.foot_i[index],  # for footskate fixing
                 "content": self.content.get_norm(index),
                 "style3d": self.style3d.get_norm(index),
                 "contentraw": self.content.get_raw(index),  # for visualization
@@ -179,19 +192,19 @@ class MotionNorm(Dataset):
                 "diff_style3d": self.style3d.get_norm(index_diff),
                 }
 
-        for idx, key in zip([index, index_same, index_diff], ["style2d", "same_style2d", "diff_style2d"]):
-            raw = self.motion_i[idx].get_projections((self.random_view_angle(),), (self.random_scale(),))[0]
-            raw = torch.tensor(raw, dtype=torch.float, device=self.device)
-            if key == "style2d":
-                data[key + "raw"] = raw
-            data[key] = self.style2d.normalize(raw)
+        # TODO: GET STYLE2D BACK
+        # for idx, key in zip([index, index_same, index_diff], ["style2d", "same_style2d", "diff_style2d"]):
+        #     raw = self.motion_i[idx].get_projections((self.random_view_angle(),), (self.random_scale(),))[0]
+        #     raw = torch.tensor(raw, dtype=torch.float, device=self.device)
+        #     if key == "style2d":
+        #         data[key + "raw"] = raw
+        #     data[key] = self.style2d.normalize(raw)
 
         return data
 
 
-def get_dataloader(config, subset_name, shuffle=None,
-                   data_path=None, extra_data_dir=None):
-    dataset = MotionNorm(config, subset_name, data_path=data_path, extra_data_dir=extra_data_dir)
+def get_dataloader(config, subset_name, shuffle=None, data_path=None, extra_data_dir=None, panda=False):
+    dataset = MotionNorm(config, subset_name, data_path=data_path, extra_data_dir=extra_data_dir, panda=panda)
     batch_size = config.batch_size if subset_name == 'train' else 1
     return DataLoader(dataset, batch_size=batch_size,
                       shuffle=(subset_name == 'train') if shuffle is None else shuffle,

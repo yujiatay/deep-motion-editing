@@ -10,7 +10,7 @@ sys.path.insert(0, BASEPATH)
 
 class Config:
 
-    for_try = False
+    for_try = True
 
     # Save & Visualization
     name = 'pretrained'
@@ -52,7 +52,7 @@ class Config:
     lr_policy = None
 
     # Training
-    batch_size = 128
+    batch_size = 4
     # TODO: changed here
     # batch_size = 1
 
@@ -69,7 +69,7 @@ class Config:
         mt_batch_n = 1  # number of batches to save in training
 
         # max_iter = 10              # maximum number of training iterations
-        batch_size = 16
+        batch_size = 4
 
     # dataset
     dataset_norm_config = {  # specify the prefix of mean/std

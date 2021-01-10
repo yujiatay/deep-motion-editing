@@ -9,13 +9,14 @@ from os.path import join as pjoin
 sys.path.insert(0, BASEPATH)
 sys.path.insert(0, pjoin(BASEPATH, '..'))
 
-from utils.load_skeleton import Skel
+from utils.load_skeleton import Skel, PandaSkel
 
 
 class ForwardKinematics:
     def __init__(self, skel=None):
         if skel is None:
-            skel = Skel()
+            # TODO: CHANGED
+            skel = PandaSkel()
         offset = skel.offset
         topology = skel.topology
         if isinstance(offset, np.ndarray): self.offset = torch.tensor(offset, dtype=torch.float)
@@ -26,8 +27,10 @@ class ForwardKinematics:
 
     # rel [B, T, J, 3] relative joint positions --> save needed joints, remove root & flip, [B, (J - 1) * 3, T]
     def trim(self, rel):
-        rel = rel[..., self.chosen_joints, :]
-        result = rel[..., 1:, :]
+        # TODO: CHANGED
+        # rel = rel[..., self.chosen_joints, :]
+        # result = rel[..., 1:, :]
+        result = rel
         result = result.reshape(result.shape[:2] + (-1,))  # [B, T, (J - 1) * 3]
         result = result.permute(0, 2, 1)  # [B, (J - 1) * 3, T]
         return result
@@ -74,7 +77,9 @@ class ForwardKinematics:
             self.offset = self.offset.to(rotation.device)
 
         result[..., 0, :] = position
-        for i, pi in enumerate(self.topology):
+        # TODO: CHANGED
+        # for i, pi in enumerate(self.topology):
+        for i, pi in enumerate(self.topology[1:]):
             if pi == -1:
                 assert i == 0
                 continue

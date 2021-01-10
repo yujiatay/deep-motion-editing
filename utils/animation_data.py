@@ -9,14 +9,14 @@ sys.path.insert(0, pjoin(BASEPATH, '..'))
 import argparse
 import numpy as np
 import scipy.ndimage.filters as filters
-from load_skeleton import Skel
+from load_skeleton import Skel, PandaSkel
 from Quaternions_old import Quaternions
 from Pivots import Pivots
 import BVH
 from probe.anim_view import visualize
 
 
-def forward_rotations(skel, rotations, rtpos=None, trim=True):
+def forward_rotations(skel, rotations, rtpos=None, trim=True, panda=False):
     """
     input: rotations [T, J, 4], rtpos [T, 3]
     output: positions [T, J, 3]
@@ -25,7 +25,14 @@ def forward_rotations(skel, rotations, rtpos=None, trim=True):
     glb = np.zeros(rotations.shape[:-1] + (3,))  # [T, J, 3]
     if rtpos is not None:
         glb[..., 0, :] = rtpos
-    for i, pi in enumerate(skel.topology):
+
+    if panda:
+        # CHANGED: Removed the first bone as it is not recorded in the animation
+        topology = skel.topology[1:]
+    else:
+        topology = skel.topology
+
+    for i, pi in enumerate(topology):
         if pi == -1:
             continue
         glb[..., i, :] = np.matmul(transforms[..., pi, :, :],
@@ -33,7 +40,7 @@ def forward_rotations(skel, rotations, rtpos=None, trim=True):
         glb[..., i, :] += glb[..., pi, :]
         transforms[..., i, :, :] = np.matmul(transforms[..., pi, :, :],
                                              transforms[..., i, :, :])
-    if trim:
+    if not panda and trim:
         glb = glb[..., skel.chosen_joints, :]
     return glb
 
@@ -232,24 +239,39 @@ class AnimationData:
         Skeleton
         [T, Jo * 4 + 4 global params + 4 foot_contact]
     """
-    def __init__(self, full, skel=None, frametime=1/30):
+    def __init__(self, full, skel=None, frametime=1/30, panda=False):
+        # print(full.shape)
         if skel is None:
             skel = Skel()
+        # Skel is either Human or Panda skel
+        self.panda = panda
         self.skel = skel
         self.frametime = frametime
         self.len = len(full)
-        self.rotations = full[:, :-8].reshape(self.len, -1, 4)  # [T, Jo, 4]
-        assert self.rotations.shape[1] == len(self.skel.topology), "Rotations do not match the skeleton."
+        # CHANGED. beware that skel topology is 8 whereas rotations only has 7..
+        if panda:
+            self.rotations = full[:, :-3].reshape(self.len, -1, 4)
+        else:
+            # Here -8 because root position, rotation and foot contact are appended at the back of `full`
+            self.rotations = full[:, :-8].reshape(self.len, -1, 4)  # [T, Jo, 4]
+        # print(self.rotations.shape, len(self.skel.topology))
+        # CHANGED: Skipped this check because currently skel topology is 8 when rotations use only 7 bones
+        # assert self.rotations.shape[1] == len(self.skel.topology), "Rotations do not match the skeleton."
         self.rotations /= np.sqrt(np.sum(self.rotations ** 2, axis=-1))[..., np.newaxis]
-        self.rt_pos = full[:, -8:-5]  # [T, 3]
-        self.rt_rot = full[:, -5:-4]  # [T, 1]
-        self.foot_contact = full[:, -4:]  # [T, 4]
-        self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos, self.rt_rot, self.foot_contact], axis=-1)
+
+        if panda:
+            self.rt_pos = full[:, -3:]
+            self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos], axis=-1)
+        else:
+            self.rt_pos = full[:, -8:-5]  # [T, 3] root pos?
+            self.rt_rot = full[:, -5:-4]  # [T, 1]
+            self.foot_contact = full[:, -4:]  # [T, 4]
+            self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos, self.rt_rot, self.foot_contact], axis=-1)
+
         self.phases = None  # [T, 1]
         self.local_x = None  # [3]
         self.positions_for_proj = None  # [T, (J - 1) + 1, 3], trimmed and not forward facing
         self.global_positions = None
-
 
     def get_full(self):
         return self.full
@@ -286,12 +308,26 @@ class AnimationData:
 
     def get_content_input(self):
         rotations = self.rotations.reshape(self.len, -1)  # [T, Jo * 4]
-        return np.concatenate((rotations, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [Jo * 4 + 3 + 1, T]
+        if self.panda:
+            content_input = rotations.transpose(1, 0)
+        else:
+            content_input = np.concatenate((rotations, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [Jo * 4 + 3 + 1, T]
+        return content_input
 
     def get_style3d_input(self):
-        pos3d = forward_rotations(self.skel, self.rotations, trim=True)[:, 1:]  # [T, J - 1, 3]
+        if self.panda:
+            pos3d = forward_rotations(self.skel, self.rotations, trim=True, panda=self.panda)
+        else:
+            # Splicing is done to remove root pos from humanoid skel
+            pos3d = forward_rotations(self.skel, self.rotations, trim=True, panda=self.panda)[:, 1:]  # [T, J - 1, 3]
         pos3d = pos3d.reshape((len(pos3d), -1))  # [T, (J - 1) * 3]
-        return np.concatenate((pos3d, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [(J - 1) * 3 + 3 + 1, T]
+
+        if self.panda:
+            return pos3d.transpose(1, 0)
+        else:
+            # TODO: CHANGED HUMAN SKEL TO RETURN DIFF STYLE3D
+            return pos3d.transpose(1,0)
+            # return np.concatenate((pos3d, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [(J - 1) * 3 + 3 + 1, T]
 
     def get_projections(self, view_angles, scales=None):
         if self.positions_for_proj is None:
@@ -371,20 +407,35 @@ class AnimationData:
 
         # [..., np.newaxis] converts the 1d array of (J, ) to 2D array of (J, 1)
         rotations /= np.sqrt(np.sum(rotations ** 2, axis=-1))[..., np.newaxis]
-        global_positions = forward_rotations(skel, rotations, root_positions, trim=True)
-        foot_contact = foot_contact_from_positions(global_positions, fid_l=skel.fid_l, fid_r=skel.fid_r)
-        quaters, pivots = y_rotation_from_positions(global_positions, hips=skel.hips, sdrs=skel.sdrs)
+        # global_positions = forward_rotations(skel, rotations, root_positions, trim=True)
+        # foot_contact = foot_contact_from_positions(global_positions, fid_l=skel.fid_l, fid_r=skel.fid_r)
+        # quaters, pivots = y_rotation_from_positions(global_positions, hips=skel.hips, sdrs=skel.sdrs)
+        #
+        # root_rotations = Quaternions(rotations[:, 0:1, :].copy())  # [T, 1, 4]
+        # root_rotations = quaters * root_rotations  # facing [0, 0, 1]
+        # root_rotations = np.array(root_rotations).reshape((-1, 1, 4))  # [T, 1, 4]
+        # rotations[:, 0:1, :] = root_rotations
 
-        root_rotations = Quaternions(rotations[:, 0:1, :].copy())  # [T, 1, 4]
-        root_rotations = quaters * root_rotations  # facing [0, 0, 1]
-        root_rotations = np.array(root_rotations).reshape((-1, 1, 4))  # [T, 1, 4]
-        rotations[:, 0:1, :] = root_rotations
-
-        full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions, pivots, foot_contact], axis=-1)
-        return cls(full, skel, frametime)
+        # full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions, pivots, foot_contact], axis=-1)
+        full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions], axis=-1)
+        return cls(full, skel, frametime, panda=True)
 
     @classmethod
-    def from_BVH(cls, filename, downsample=4, skel=None, trim_scale=None):
+    def from_rotations_and_root_positions_panda(cls, rotations, root_positions, skel=None, frametime=1 / 30):
+        """
+        rotations: [T, J, 4]
+        root_positions: [T, 3]
+        """
+        if skel is None:
+            skel = PandaSkel()
+
+        # [..., np.newaxis] converts the 1d array of (J, ) to 2D array of (J, 1)
+        rotations /= np.sqrt(np.sum(rotations ** 2, axis=-1))[..., np.newaxis]
+        full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions], axis=-1)
+        return cls(full, skel, frametime, panda=True)
+
+    @classmethod
+    def from_BVH(cls, filename, downsample=4, skel=None, trim_scale=None, mode=None):
         anim, names, frametime = BVH.load(filename)
         # Takes only every "downsample"-th value in array
         anim = anim[::downsample]
@@ -393,6 +444,8 @@ class AnimationData:
             anim = anim[:length]
         rotations = np.array(anim.rotations)  # [T, J, 4]
         root_positions = anim.positions[:, 0, :]
+        if mode == 'panda':
+            return cls.from_rotations_and_root_positions_panda(rotations, root_positions, skel, frametime=frametime * downsample)
         return cls.from_rotations_and_root_positions(rotations, root_positions, skel=skel, frametime=frametime * downsample)
 
 

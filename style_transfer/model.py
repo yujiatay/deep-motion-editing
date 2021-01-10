@@ -98,16 +98,21 @@ class Model(nn.Module):
         same_style = "same_style" + ("3d" if self.iter % 4 < 2 else "2d")
         diff_style = "diff_style" + ("3d" if self.iter % 8 < 4 else "2d")
         """
-        stylestr, ostylestr = ("style3d", "style3draw") if self.iter % 2 == 0 else ("style2d", "style2draw")
-        same_style = "same_style" + ("3d" if self.iter % 2 == 0 else "2d")
-        diff_style = "diff_style" + ("3d" if self.iter % 2 == 0 else "2d")
+        condition = self.iter % 2 == 0
+        # TODO: CHANGED Fixed this to STYLE3D
+        condition = True
+        stylestr, ostylestr = ("style3d", "style3draw") if condition else ("style2d", "style2draw")
+        same_style = "same_style" + ("3d" if condition else "2d")
+        diff_style = "diff_style" + ("3d" if condition else "2d")
 
         if mode == 'gen_update':
 
             self.iter += 1
 
+            # TODO: CHANGED
             # joint positions to calc l_rec, glb info to complete the output
-            xo, xglb = self.split_pos_glb(co_data["style3draw"])
+            # xo, xglb = self.split_pos_glb(co_data["style3draw"])
+            xo = co_data["style3draw"]
             la = co_data["label"]
             lb = cl_data["label"]
 
@@ -132,9 +137,13 @@ class Model(nn.Module):
             l_tw_rec = (l_tw_r + l_tw_s) / 2.0
             l_tw = self.weighted_average(l_tw_t, l_tw_rec)
 
-            xtf = self.merge_pos_glb(xt, xglb)
-            xrf = self.merge_pos_glb(xr, xglb)
-            xsf = self.merge_pos_glb(xs, xglb)
+            # CHANGED
+            # xtf = self.merge_pos_glb(xt, xglb)
+            # xrf = self.merge_pos_glb(xr, xglb)
+            # xsf = self.merge_pos_glb(xs, xglb)
+            xtf = xt
+            xrf = xr
+            xsf = xs
 
             # input to discriminator
             da = self.convert_to_disc(co_data["style3draw"])
@@ -173,7 +182,9 @@ class Model(nn.Module):
 
             # reconstruction loss for rotations!
             if self.use_rotloss:
-                rxo, _ = self.split_pos_glb(co_data["contentraw"]) # nrot: xx + 4
+                # CHANGED
+                # rxo, _ = self.split_pos_glb(co_data["contentraw"]) # nrot: xx + 4
+                rxo = co_data["contentraw"]
                 l_r_rrec = self.recon_criterion(rxr, rxo)
                 l_s_rrec = self.recon_criterion(rxs, rxo)
                 l_rrec = (l_r_rrec + l_s_rrec) / 2.0
@@ -188,10 +199,11 @@ class Model(nn.Module):
 
             # joint loss
 
-            otherstr = "style2d" if stylestr == "style3d" else "style3d"
-            s_other = self.gen.enc_style(co_data[otherstr], otherstr[-2:])
-
-            l_joint = self.mse(s_other, s_xa)
+            # TODO: CHANGED. REMOVED JOINT LOSS BECAUSE LACKING STYLE2D
+            # otherstr = "style2d" if stylestr == "style3d" else "style3d"
+            # s_other = self.gen.enc_style(co_data[otherstr], otherstr[-2:])
+            #
+            # l_joint = self.mse(s_other, s_xa)
 
             # summary
 
@@ -200,8 +212,8 @@ class Model(nn.Module):
                        self.feat_w * l_ft + # feature loss?
                        self.qt_w * l_qt + # quaternion loss?
                        self.tw_w * l_tw + # twist loss?
-                       self.triplet_w * l_triplet + # triplet loss for style latent space
-                       self.joint_w * l_joint) # joint loss for 3D-2D motion mapping
+                       self.triplet_w * l_triplet) # triplet loss for style latent space
+                       # self.joint_w * l_joint) # joint loss for 3D-2D motion mapping
 
             if self.use_rotloss:
                 l_total += self.rrec_w * l_rrec
@@ -221,7 +233,7 @@ class Model(nn.Module):
                 'gen_loss_quaternion': l_qt,
                 'gen_loss_twist': l_tw,
                 'gen_loss_triplet': l_triplet,
-                'gen_loss_joint': l_joint,
+                # 'gen_loss_joint': l_joint,
                 'gen_acc_all': gacc,
                 'gen_acc_rec': gacc_rec,
                 'gen_acc_t': gacc_t
@@ -247,16 +259,19 @@ class Model(nn.Module):
             l_reg = 10 * l_reg_pre
             l_reg.backward(retain_graph=True)
             with torch.no_grad():
+                # TODO: There is no need to split xa as rt_pos and rt_rot are not included after removing style2d
                 xo, xglb = self.split_pos_glb(xa)
                 c_xa = self.gen.enc_content(co_data["content"])
-                s_xa = self.gen.enc_style(co_data[stylestr], stylestr[-2:])
+                s_xa = self.gen.enc_style(co_data[stylestr], stylestr[-2:], panda=True)
                 s_xb = self.gen.enc_style(cl_data[stylestr], stylestr[-2:])
 
                 xt, rxt = self.gen.decode(c_xa, s_xb)
                 xr, rxr = self.gen.decode(c_xa, s_xa)
 
-                dt = self.convert_to_disc(self.merge_pos_glb(xt, xglb))
-                dr = self.convert_to_disc(self.merge_pos_glb(xr, xglb))
+                dt = self.convert_to_disc(xt)
+                dr = self.convert_to_disc(xr)
+                # dt = self.convert_to_disc(self.merge_pos_glb(xt, xglb))
+                # dr = self.convert_to_disc(self.merge_pos_glb(xr, xglb))
 
             l_fake_p_r, acc_f_r, resp_f_r = self.dis.calc_dis_fake_loss(dr.detach(), la)
             l_fake_p_t, acc_f_t, resp_f_t = self.dis.calc_dis_fake_loss(dt.detach(), lb)
@@ -287,12 +302,16 @@ class Model(nn.Module):
 
         xtgt = data["style3draw"]
         x = data["content"]
-        stylestr = "style3d" if self.iter % 2 == 0 else "style2d"
+        # TODO CHANGED no more style2d
+        # stylestr = "style3d" if self.iter % 2 == 0 else "style2d"
+        stylestr = "style3d"
         same_style = "same_" + stylestr
         y = data[stylestr]
         yp = data[same_style]
 
-        xo, xglb = self.split_pos_glb(xtgt)
+        # CHANGED
+        # xo, xglb = self.split_pos_glb(xtgt)
+        xo = xtgt
 
         with torch.no_grad():
             c_x = self.gen.enc_content(x)
@@ -332,15 +351,18 @@ class Model(nn.Module):
         _, rxt = self.gen.decode(c_xa, s_xb)
         _, rxr = self.gen.decode(c_xa, s_xa)
 
-        full_r = self.merge_pos_glb(rxr, xglb)
-        full_t = self.merge_pos_glb(rxt, xglb)
+        # TODO: CHANGED as no glb
+        # full_r = self.merge_pos_glb(rxr, xglb)
+        # full_t = self.merge_pos_glb(rxt, xglb)
+        full_r = rxr
+        full_t = rxt
 
         self.train()
 
         out_dict = {
             "content_meta": co_data["meta"],
             "style_meta": cl_data["meta"],
-            "foot_contact": co_data["foot_contact"],
+            # "foot_contact": co_data["foot_contact"],
             "content": co_data["contentraw"],
             "recon": full_r,
             "trans": full_t,

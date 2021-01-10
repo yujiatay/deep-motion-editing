@@ -59,6 +59,32 @@ class EncoderContent(nn.Module):
         x = self.conv_model(x)
         return x
 
+class EncoderPandaStyle(nn.Module):
+    def __init__(self, config, dim):
+        super(EncoderPandaStyle, self).__init__()
+        channels = config.panda_enc_cl_channels
+        channels[0] = config.panda_style_channel_3d
+
+        kernel_size = config.panda_enc_cl_kernel_size
+        stride = config.panda_enc_cl_stride
+
+        self.global_pool = F.max_pool1d
+
+        layers = []
+        n_convs = config.panda_enc_cl_down_n
+
+        for i in range(n_convs):
+            layers += ConvBlock(kernel_size, channels[i], channels[i + 1],
+                                stride=stride, norm='none', acti='lrelu')
+
+        self.conv_model = nn.Sequential(*layers)
+        self.channels = channels
+
+    def forward(self, x):
+        x = self.conv_model(x)
+        kernel_size = x.shape[-1]
+        x = self.global_pool(x, kernel_size)
+        return x
 
 class EncoderStyle(nn.Module):
     def __init__(self, config, dim):
@@ -152,6 +178,7 @@ class JointGen(nn.Module):
         super(JointGen, self).__init__()
         self.enc_style2d = EncoderStyle(config, "2d")
         self.enc_style3d = EncoderStyle(config, "3d")
+        self.enc_panda_style = EncoderPandaStyle(config, "3d")
         self.enc_content = EncoderContent(config)
         self.dec = Decoder(config)
         self.mlp = MLP(config,
@@ -174,8 +201,10 @@ class JointGen(nn.Module):
         motions = self.rot_to_motion(rotations)
         return motions, rotations
 
-    def enc_style(self, style, mode):
+    def enc_style(self, style, mode, panda=False):
         if mode == "3d":
+            if panda:
+                return self.enc_panda_style(style)
             return self.enc_style3d(style)
         elif mode == "2d":
             return self.enc_style2d(style)
