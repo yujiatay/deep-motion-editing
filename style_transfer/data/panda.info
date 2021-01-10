@@ -1,0 +1,36 @@
+train:
+  num_clips: 80
+  distribution:
+    pandas:
+      pandac: 80
+test:
+  num_clips: 20
+  distribution:
+    pandas:
+      pandac: 20
+trainfull:
+  num_clips: 80
+  distribution:
+    pandas:
+      pandac: 80
+test_files:
+- panda_000.bvh
+- panda_001.bvh
+- panda_002.bvh
+- panda_003.bvh
+- panda_004.bvh
+- panda_005.bvh
+- panda_006.bvh
+- panda_007.bvh
+- panda_008.bvh
+- panda_009.bvh
+- panda_010.bvh
+- panda_011.bvh
+- panda_012.bvh
+- panda_013.bvh
+- panda_014.bvh
+- panda_015.bvh
+- panda_016.bvh
+- panda_017.bvh
+- panda_018.bvh
+- panda_019.bvh
