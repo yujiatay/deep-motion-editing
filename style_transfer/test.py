@@ -45,11 +45,11 @@ def main(args):
         st_data = process_single_json(args.style_src, config, to_batch=True)
 
     output = trainer.test(co_data, st_data, status)
-    foot_contact = output["foot_contact"][0].cpu().numpy()
+    # foot_contact = output["foot_contact"][0].cpu().numpy()
     motion = output["trans"][0].detach().cpu().numpy()
     output_dir = pjoin(config.main_dir, 'test_output') if args.output_dir is None else args.output_dir
     save_bvh_from_network_output(motion, output_path=pjoin(output_dir, 'raw.bvh'))
-    remove_fs(motion, foot_contact, output_path=pjoin(output_dir, 'fixed.bvh'))
+    # remove_fs(motion, foot_contact, output_path=pjoin(output_dir, 'fixed.bvh'))
 
 
 if __name__ == '__main__':

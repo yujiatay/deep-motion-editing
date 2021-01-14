@@ -220,17 +220,20 @@ def single_to_batch(data):
     return data
 
 
-def process_single_bvh(filename, config, norm_data_dir=None, downsample=4, skel=None, to_batch=False):
+def process_single_bvh(filename, config, norm_data_dir=None, downsample=4, skel=None, to_batch=False, panda=False):
     def to_tensor(x):
         return torch.tensor(x).float().to(config.device)
 
-    anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, trim_scale=4)
-    foot_contact = anim.get_foot_contact(transpose=True)  # [4, T]
+    if panda:
+        anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, trim_scale=4, mode="panda")
+    else:
+        anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, trim_scale=4)
+    # foot_contact = anim.get_foot_contact(transpose=True)  # [4, T]
     content = to_tensor(anim.get_content_input())
     style3d = to_tensor(anim.get_style3d_input())
 
     data = {"meta": {"style": "test", "content": filename.split('/')[-1]},
-            "foot_contact": to_tensor(foot_contact),
+            # "foot_contact": to_tensor(foot_contact),
             "contentraw": content,
             "style3draw": style3d
             }
