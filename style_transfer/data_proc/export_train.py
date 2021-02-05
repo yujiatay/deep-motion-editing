@@ -127,10 +127,12 @@ def motion_and_phase_to_dict(fulls, style, meta, panda=False):
             motion = full
             meta_copy = deepcopy(meta)
         else:
-            motion, phase = full[:, :-1], full[:, -1]
-            phase_label = phase[len(phase) // 2]
+            # motion, phase = full[:, :-1], full[:, -1]
+            # phase_label = phase[len(phase) // 2]
+            # meta_copy = deepcopy(meta)
+            # meta_copy["phase"] = phase_label
+            motion = full
             meta_copy = deepcopy(meta)
-            meta_copy["phase"] = phase_label
         output.append({
             "motion": motion,
             "style": style,

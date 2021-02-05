@@ -253,7 +253,9 @@ class AnimationData:
             self.rotations = full[:, :-3].reshape(self.len, -1, 4)
         else:
             # Here -8 because root position, rotation and foot contact are appended at the back of `full`
-            self.rotations = full[:, :-8].reshape(self.len, -1, 4)  # [T, Jo, 4]
+            # self.rotations = full[:, :-8].reshape(self.len, -1, 4)  # [T, Jo, 4]
+            # TODO CHANGED
+            self.rotations = full[:, :-3].reshape(self.len, -1, 4)  # [T, Jo, 4]
         # print(self.rotations.shape, len(self.skel.topology))
         # CHANGED: Skipped this check because currently skel topology is 8 when rotations use only 7 bones
         # assert self.rotations.shape[1] == len(self.skel.topology), "Rotations do not match the skeleton."
@@ -263,10 +265,13 @@ class AnimationData:
             self.rt_pos = full[:, -3:]
             self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos], axis=-1)
         else:
-            self.rt_pos = full[:, -8:-5]  # [T, 3] root pos?
-            self.rt_rot = full[:, -5:-4]  # [T, 1]
-            self.foot_contact = full[:, -4:]  # [T, 4]
-            self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos, self.rt_rot, self.foot_contact], axis=-1)
+            self.rt_pos = full[:, -3:]  # [T, 3] root pos?
+            self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos], axis=-1)
+            # TODO CHANGED.
+            # self.rt_pos = full[:, -8:-5]  # [T, 3] root pos?
+            # self.rt_rot = full[:, -5:-4]  # [T, 1]
+            # self.foot_contact = full[:, -4:]  # [T, 4]
+            # self.full = np.concatenate([self.rotations.reshape(self.len, -1), self.rt_pos, self.rt_rot, self.foot_contact], axis=-1)
 
         self.phases = None  # [T, 1]
         self.local_x = None  # [3]
@@ -311,7 +316,8 @@ class AnimationData:
         if self.panda:
             content_input = rotations.transpose(1, 0)
         else:
-            content_input = np.concatenate((rotations, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [Jo * 4 + 3 + 1, T]
+            content_input = np.concatenate((rotations, self.rt_pos), axis=-1).transpose(1, 0)
+            # content_input = np.concatenate((rotations, self.rt_pos, self.rt_rot), axis=-1).transpose(1, 0)  # [Jo * 4 + 3 + 1, T]
         return content_input
 
     def get_style3d_input(self):
@@ -364,23 +370,27 @@ class AnimationData:
 
     def get_BVH(self, forward=True):
         rt_pos = self.rt_pos  # [T, 3]
-        rt_rot = self.rt_rot  # [T, 1]
-        if forward:  # choose a direction in [z+, x+, z-, x-], which is closest to "forward", as the new z+
+        rt_rot = self.rt_pos[0:1, :].copy()
+        # rt_rot = self.rt_rot  # [T, 1]
+        # TODO: CHANGED. Comment this out for time being
+        # if forward:  # choose a direction in [z+, x+, z-, x-], which is closest to "forward", as the new z+
+        #
+        #     directions = np.array(range(4)) * np.pi * 0.5  # [0, 1, 2, 3] * 0.5pi
+        #     diff = rt_rot[np.newaxis, :] - directions[:, np.newaxis, np.newaxis]  # [1, T, 1] - [4, 1, 1]
+        #     diff = np.minimum(np.abs(diff), 2.0 * np.pi - np.abs(diff))
+        #     diff = np.sum(diff, axis=(-1, -2))  # [4, T, 1] -> [4]
+        #
+        #     new_forward = np.argmin(diff)
+        #     rt_rot -= new_forward * np.pi * 0.5
+        #
+        #     for d in range(new_forward):
+        #         tmp = rt_pos[..., 0].copy()
+        #         rt_pos[..., 0] = -rt_pos[..., 2].copy()
+        #         rt_pos[..., 2] = tmp
 
-            directions = np.array(range(4)) * np.pi * 0.5  # [0, 1, 2, 3] * 0.5pi
-            diff = rt_rot[np.newaxis, :] - directions[:, np.newaxis, np.newaxis]  # [1, T, 1] - [4, 1, 1]
-            diff = np.minimum(np.abs(diff), 2.0 * np.pi - np.abs(diff))
-            diff = np.sum(diff, axis=(-1, -2))  # [4, T, 1] -> [4]
-
-            new_forward = np.argmin(diff)
-            rt_rot -= new_forward * np.pi * 0.5
-
-            for d in range(new_forward):
-                tmp = rt_pos[..., 0].copy()
-                rt_pos[..., 0] = -rt_pos[..., 2].copy()
-                rt_pos[..., 2] = tmp
-
-        rotations = self.get_original_rotations(rt_rot=rt_rot)
+        # TODO: CHANGED
+        # rotations = self.get_original_rotations(rt_rot=rt_rot)
+        rotations = self.rotations
 
         rest, names, _ = self.skel.rest_bvh
         anim = rest.copy()
@@ -391,10 +401,16 @@ class AnimationData:
         return (anim, names, self.frametime)
 
     @classmethod
-    def from_network_output(cls, input):
+    def from_network_output(cls, input, panda=False, skel=None):
+        if skel is None:
+            skel = PandaSkel()
+
         input = input.transpose(1, 0)
-        input = np.concatenate((input, np.zeros((len(input), 4))), axis=-1)
-        return cls(input)
+        if panda:
+            input = np.concatenate((input, np.zeros((len(input), 3))), axis=-1)
+        else:
+            input = np.concatenate((input, np.zeros((len(input), 4))), axis=-1)
+        return cls(input, skel, panda=panda)
 
     @classmethod
     def from_rotations_and_root_positions(cls, rotations, root_positions, skel=None, frametime=1/30):
@@ -418,7 +434,7 @@ class AnimationData:
 
         # full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions, pivots, foot_contact], axis=-1)
         full = np.concatenate([rotations.reshape((len(rotations), -1)), root_positions], axis=-1)
-        return cls(full, skel, frametime, panda=True)
+        return cls(full, skel, frametime)
 
     @classmethod
     def from_rotations_and_root_positions_panda(cls, rotations, root_positions, skel=None, frametime=1 / 30):

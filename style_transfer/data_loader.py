@@ -17,14 +17,24 @@ from config import Config
 from py_utils import print_composite
 
 
-def normalize_motion(motion, mean_pose, std_pose):
+def to_tensor(x):
+    gpu_device = torch.device("cuda:%d" % 0 if torch.cuda.is_available() else "cpu")
+    return torch.tensor(x).float().to(gpu_device)
+
+
+def normalize_motion(motion, mean_pose, std_pose, panda: bool = False):
     """
     inputs:
     motion: (V, C, T) or (C, T)
     mean_pose: (C, 1)
     std_pose: (C, 1)
     """
-    return (motion - mean_pose) / std_pose
+    if not panda:
+        mean_pose = mean_pose[:len(motion)]
+        std_pose = mean_pose[:len(motion)]
+    normalized = (motion - mean_pose) / std_pose
+    return to_tensor(np.nan_to_num(normalized))
+    # return (motion - mean_pose) / std_pose
 
 
 class NormData:
@@ -224,10 +234,11 @@ def process_single_bvh(filename, config, norm_data_dir=None, downsample=4, skel=
     def to_tensor(x):
         return torch.tensor(x).float().to(config.device)
 
+    # TODO: CHANGED trim_scale was 4 and downsample was default 4
     if panda:
-        anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, trim_scale=4, mode="panda")
+        anim = AnimationData.from_BVH(filename, downsample=1, skel=skel, trim_scale=None, mode="panda")
     else:
-        anim = AnimationData.from_BVH(filename, downsample=downsample, skel=skel, trim_scale=4)
+        anim = AnimationData.from_BVH(filename, downsample=1, skel=skel, trim_scale=None)
     # foot_contact = anim.get_foot_contact(transpose=True)  # [4, T]
     content = to_tensor(anim.get_content_input())
     style3d = to_tensor(anim.get_style3d_input())
@@ -245,7 +256,10 @@ def process_single_bvh(filename, config, norm_data_dir=None, downsample=4, skel=
         norm = np.load(norm_path, allow_pickle=True)
         data[key] = normalize_motion(raw,
                                      to_tensor(norm['mean']).unsqueeze(-1),
-                                     to_tensor(norm['std']).unsqueeze(-1))
+                                     to_tensor(norm['std']).unsqueeze(-1),
+                                     panda=panda)
+        if key == "style3d":
+            data[key] = to_tensor(np.nan_to_num(data[key]))
 
     if to_batch:
         data = single_to_batch(data)

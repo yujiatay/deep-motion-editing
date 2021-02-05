@@ -1,5 +1,9 @@
 import os
 import sys
+
+import BVH
+from animation_data import AnimationData
+
 BASEPATH = os.path.dirname(__file__)
 sys.path.insert(0, BASEPATH)
 from os.path import join as pjoin
@@ -27,30 +31,42 @@ def parse_args():
 def main(args):
     config_module = importlib.import_module(args.config)
     config = config_module.Config()
+    panda_config_module = importlib.import_module("config_panda")
+    panda_config = panda_config_module.Config()
 
     # Load experiment setting
     config.initialize(args)
+    panda_config.initialize(args)
 
     # Trainer
-    trainer = Trainer(config)
-    trainer.to(config.device)
+    trainer = Trainer(panda_config)
+    trainer.to(panda_config.device)
     trainer.resume()
 
-    co_data = process_single_bvh(args.content_src, config, to_batch=True)
+    co_data = process_single_bvh(args.content_src, panda_config, to_batch=True, panda=True)
     if args.style_src.endswith('.bvh'):
         status = '3d'
-        st_data = process_single_bvh(args.style_src, config, to_batch=True)
+        st_data = process_single_bvh(args.style_src, config, to_batch=True, panda=False)
     else:
         status = '2d'
-        st_data = process_single_json(args.style_src, config, to_batch=True)
+        st_data = process_single_json(args.style_src, config, to_batch=True, panda=False)
 
     output = trainer.test(co_data, st_data, status)
     # foot_contact = output["foot_contact"][0].cpu().numpy()
     motion = output["trans"][0].detach().cpu().numpy()
     output_dir = pjoin(config.main_dir, 'test_output') if args.output_dir is None else args.output_dir
-    save_bvh_from_network_output(motion, output_path=pjoin(output_dir, 'raw.bvh'))
+    save_bvh_from_network_output(motion, output_path=pjoin(output_dir, 'modified.bvh'), panda=True)
     # remove_fs(motion, foot_contact, output_path=pjoin(output_dir, 'fixed.bvh'))
 
+    anim = AnimationData.from_BVH(args.content_src, downsample=1, skel=None, trim_scale=None, mode="panda")
+    save_bvh(pjoin(output_dir, 'original.bvh'), anim)
+
+
+def save_bvh(output_path, anim):
+    bvh, names, ftime = anim.get_BVH()
+    if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path))
+    BVH.save(output_path, bvh, names, ftime)
 
 if __name__ == '__main__':
     args = parse_args()

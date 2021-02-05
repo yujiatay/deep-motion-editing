@@ -47,8 +47,8 @@ def nrot2anim(nrot):
     return (bvh, names, ftime), glb
 
 
-def save_bvh_from_network_output(nrot, output_path):
-    anim = AnimationData.from_network_output(nrot)
+def save_bvh_from_network_output(nrot, output_path, panda=False):
+    anim = AnimationData.from_network_output(nrot, panda=panda)
     bvh, names, ftime = anim.get_BVH()
     if not os.path.exists(os.path.dirname(output_path)):
         os.makedirs(os.path.dirname(output_path))

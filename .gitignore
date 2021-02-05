@@ -115,4 +115,6 @@ retargeting/pretrained/results/*
 retargeting/examples
 
 style_transfer/data/mocap_xia
+style_transfer/data/xia_test/*
+style_transfer/demo_results/panda*
 style_transfer/pretrained/*

@@ -111,37 +111,37 @@ def main(args):
 
                 """latent codes"""  # !!!!! TD: add a separate function, merge with plot_clusters
 
-                # vis_dicts = {}
-                # for phase, co_loader, cl_loader, writer in [['train', train_content_loader, train_class_loader, train_writer],
-                #                                             ['test', test_content_loader, test_class_loader, test_writer]]:
-                #
-                #     vis_dict = None
-                #     for t, tcl_data in enumerate(cl_loader):
-                #         vis_codes = trainer.get_latent_codes(tcl_data)
-                #         if vis_dict is None:
-                #             vis_dict = {}
-                #             for key, value in vis_codes.items():
-                #                 vis_dict[key] = [value]
-                #         else:
-                #             for key, value in vis_codes.items():
-                #                 vis_dict[key].append(value)
-                #     for key, value in vis_dict.items():
-                #         if phase == "test" and key == "content_code":
-                #             continue
-                #         if key == "meta":
-                #             secondary_keys = value[0].keys()
-                #             num = len(value)
-                #             vis_dict[key] = {secondary_key: [to_float(item) for i in range(num) for item in value[i][secondary_key]]
-                #                              for secondary_key in secondary_keys}
-                #         else:
-                #             vis_dict[key] = torch.cat(vis_dict[key], 0)
-                #             vis_dict[key] = vis_dict[key].cpu().numpy()
-                #             vis_dict[key] = to_float(vis_dict[key].reshape(vis_dict[key].shape[0], -1))
-                #
-                #     vis_dicts[phase] = vis_dict
-                #
-                # writers = {"train": train_writer, "test": test_writer}
-                # get_all_plots(vis_dicts, os.path.join(panda_config.output_dir, key_str), writers, iterations + 1)
+                vis_dicts = {}
+                for phase, co_loader, cl_loader, writer in [['train', train_content_loader, train_class_loader, train_writer],
+                                                            ['test', test_content_loader, test_class_loader, test_writer]]:
+
+                    vis_dict = None
+                    for t, tcl_data in enumerate(cl_loader):
+                        vis_codes = trainer.get_latent_codes(tcl_data)
+                        if vis_dict is None:
+                            vis_dict = {}
+                            for key, value in vis_codes.items():
+                                vis_dict[key] = [value]
+                        else:
+                            for key, value in vis_codes.items():
+                                vis_dict[key].append(value)
+                    for key, value in vis_dict.items():
+                        if phase == "test" and key == "content_code":
+                            continue
+                        if key == "meta":
+                            secondary_keys = value[0].keys()
+                            num = len(value)
+                            vis_dict[key] = {secondary_key: [to_float(item) for i in range(num) for item in value[i][secondary_key]]
+                                             for secondary_key in secondary_keys}
+                        else:
+                            vis_dict[key] = torch.cat(vis_dict[key], 0)
+                            vis_dict[key] = vis_dict[key].cpu().numpy()
+                            vis_dict[key] = to_float(vis_dict[key].reshape(vis_dict[key].shape[0], -1))
+
+                    vis_dicts[phase] = vis_dict
+
+                writers = {"train": train_writer, "test": test_writer}
+                get_all_plots(vis_dicts, os.path.join(panda_config.output_dir, key_str), writers, iterations + 1)
 
                 """outputs"""
                 for phase, co_loader, cl_loader in [['trainfull', trainfull_content_loader, trainfull_class_loader],
