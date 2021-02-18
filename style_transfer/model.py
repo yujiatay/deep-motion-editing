@@ -211,8 +211,8 @@ class Model(nn.Module):
                        self.rec_w * l_rec + # reconstruction loss
                        self.feat_w * l_ft + # feature loss?
                        self.qt_w * l_qt + # quaternion loss?
-                       self.tw_w * l_tw + # twist loss?
-                       self.triplet_w * l_triplet) # triplet loss for style latent space
+                       self.tw_w * l_tw) # twist loss?
+                       # self.triplet_w * l_triplet) # triplet loss for style latent space
                        # self.joint_w * l_joint) # joint loss for 3D-2D motion mapping
 
             if self.use_rotloss:
@@ -232,7 +232,7 @@ class Model(nn.Module):
                 'gen_loss_feature_t': l_ft_t,
                 'gen_loss_quaternion': l_qt,
                 'gen_loss_twist': l_tw,
-                'gen_loss_triplet': l_triplet,
+                # 'gen_loss_triplet': l_triplet,
                 # 'gen_loss_joint': l_joint,
                 'gen_acc_all': gacc,
                 'gen_acc_rec': gacc_rec,

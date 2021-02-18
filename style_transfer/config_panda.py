@@ -173,10 +173,10 @@ class Config:
 
     num_classes = 8
 
-    gan_w = 1
+    gan_w = 0.1  # original: 1
     rec_w = 1
     rrec_w = 1
-    feat_w = 0.5
+    feat_w = 0.2  # original: 0.5
     qt_w = 0.1
     joint_w = 0.3
     triplet_w = 0.3
