@@ -62,6 +62,7 @@ def main(args):
     print(trainer.model, file=tr_info)
     tr_info.close()
 
+    print(panda_config.device)
     trainer.to(panda_config.device)
     iterations = trainer.resume()
 
@@ -84,6 +85,7 @@ def main(args):
     cyc_train_content_loader = cycle(train_content_loader)
     cyc_train_class_loader = cycle(train_class_loader)
 
+    print("Starting training")
     while True:
         it = it + 1
         co_data = next(cyc_train_content_loader)

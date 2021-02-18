@@ -33,6 +33,7 @@ def normalize_motion(motion, mean_pose, std_pose, panda: bool = False):
         mean_pose = mean_pose[:len(motion)]
         std_pose = mean_pose[:len(motion)]
     normalized = (motion - mean_pose) / std_pose
+    normalized = normalized.cpu()
     return to_tensor(np.nan_to_num(normalized))
     # return (motion - mean_pose) / std_pose
 
@@ -105,7 +106,7 @@ class MotionNorm(Dataset):
         '''
         motions: arrays of T x 132
         labels: array of integer values to denote the 'style' of the motion
-        metas: 
+        metas:
             - style: array of string labels e.g. 'angry', 'childlike'
             - content: array of string labels e.g. 'walk'
             - phase: array of floats
