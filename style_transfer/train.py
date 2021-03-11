@@ -30,8 +30,8 @@ def main(args):
 
     # Load experiment setting
     config.initialize(args)
-    max_iter = config.max_iter
     panda_config.initialize(args)
+    max_iter = panda_config.max_iter
 
     # Dataloader
     '''Moveit data'''
