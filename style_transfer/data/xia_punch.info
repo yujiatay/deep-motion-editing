@@ -1,0 +1,186 @@
+train:
+  num_clips: 101
+  distribution:
+    angry:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 12
+      trans: 0
+    childlike:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 16
+      trans: 0
+    depressed:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 18
+      trans: 0
+    neutral:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 15
+      trans: 0
+    old:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 11
+      trans: 0
+    proud:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 8
+      trans: 0
+    sexy:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 8
+      trans: 0
+    strutting:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 13
+      trans: 0
+test:
+  num_clips: 8
+  distribution:
+    angry:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    childlike:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    depressed:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    neutral:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    old:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    proud:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    sexy:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+    strutting:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 1
+      trans: 0
+trainfull:
+  num_clips: 78
+  distribution:
+    angry:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 11
+      trans: 0
+    childlike:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 11
+      trans: 0
+    depressed:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 11
+      trans: 0
+    neutral:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 15
+      trans: 0
+    old:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 5
+      trans: 0
+    proud:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 7
+      trans: 0
+    sexy:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 7
+      trans: 0
+    strutting:
+      walk: 0
+      run: 0
+      jump: 0
+      kick: 0
+      punch: 11
+      trans: 0
+test_files:
+- angry_18_000.bvh
+- childlike_18_000.bvh
+- depressed_18_000.bvh
+- neutral_18_000.bvh
+- old_18_000.bvh
+- proud_18_000.bvh
+- sexy_18_000.bvh
+- strutting_18_000.bvh

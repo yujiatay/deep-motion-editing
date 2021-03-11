@@ -25,7 +25,7 @@ class Config:
     # data paths
     data_dir = pjoin(BASEPATH, 'data')
     expr_dir = BASEPATH
-    data_filename = "xia.npz"
+    data_filename = "xia_punch.npz"
     data_path = pjoin(data_dir, data_filename)
     extra_data_dir = pjoin(data_dir, data_filename.split('.')[-2].split('/')[-1] + "_norms")
 

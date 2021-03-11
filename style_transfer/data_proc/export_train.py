@@ -235,11 +235,16 @@ def generate_database_xia(bvh_path, output_path, window, window_step, dataset_co
     test_cnt = {}  # indexed by content_style
 
     for i, item in enumerate(bvh_files):
-        print('Processing %i of %i (%s)' % (i, len(bvh_files), item))
         # Filename format: angry_01_000.bvh
         filename = item.split('/')[-1]
         # style: "angry", content_idx: "01"
         style, content_idx, _ = filename.split('_')
+
+        punch_motions = [str(x) for x in [18, 19, 20, 21]]
+        if content_idx not in punch_motions:
+            # Skip all non-punch motions
+            continue
+        print('Processing %i of %i (%s)' % (i, len(bvh_files), item))
 
         # content: "walk"
         content = content_namedict[int(content_idx) - 1]
