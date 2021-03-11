@@ -45,7 +45,7 @@ class Config:
 
     # optimization options
     max_iter = 300000              # maximum number of training iterations
-    weight_decay = 0.0001          # weight decay
+    weight_decay = 0.01          # weight decay (previously 0.0001)
     lr_gen = 0.0001                # learning rate for the generator
     lr_dis = 0.0001                # learning rate for the discriminator
     weight_init = 'kaiming'                 # initialization [gaussian/kaiming/xavier/orthogonal]
@@ -99,7 +99,7 @@ class Config:
 
     """
     encoder for class
-    [down_n] stride=[enc_cl_stride], dim=[enc_cl_channels] convs, 
+    [down_n] stride=[enc_cl_stride], dim=[enc_cl_channels] convs,
     followed by [enc_cl_global_pool]
 
     """
